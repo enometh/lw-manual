@@ -1,4 +1,4 @@
-# `M-x lw-manual`
+# `M-x lw:manual`
 
 Look up LispWorks<sup>&reg;</sup> Documentation and display it using
 Emacs' `browse-url` facility.
@@ -84,7 +84,7 @@ for other LispWorks versions (at least starting from 6.1)
   <small><i>Note </i> Earlier versions of `dump-lw-manual` used
   `html-parse` and manipulated the sexp DOM.  lQuery seems to be
   cleaner to express the extraction.  Upstream lQuery may need to be
-  fixed to make work with LispWorks and the parser may run out of
+  fixed to make it work with LispWorks and the parser may run out of
   memory on the LispWorks Personal Edition.</small>
 
 ### See also
