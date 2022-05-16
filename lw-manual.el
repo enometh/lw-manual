@@ -1,7 +1,7 @@
 ;;; lw-manual.el -- lookup LispWorks Documentation -*- lexical-binding: t; -*-
 ;;;
 ;;;   Touched: Sat Apr 18 19:21:57 2009 +0530 <enometh@meer.net>
-;;;   Time-stamp: <2020-06-23 15:56:27 IST>
+;;;   Time-stamp: <2022-05-16 22:11:34 IST>
 ;;;   Bugs-To: enometh@net.meer
 ;;;   Status: Experimental.  Do not redistribute
 ;;;   Copyright (C) 2020 Madhu.  All Rights Reserved.
@@ -43,8 +43,8 @@
 (require 'thingatpt)
 
 (defvar lw:manual-base-url
-  "file:///usr/local/lib64/LispWorksPersonal/lib/5-1-0-0/manual/online/web/"
-  "Location of the `intro.htm' file.
+  "http://www.lispworks.com/documentation/lw71/"
+  "Location of the `intro.htm' for file:// urls.
 
 If you installed the LispWorks documentation on your local system, set this
 variable to something like
