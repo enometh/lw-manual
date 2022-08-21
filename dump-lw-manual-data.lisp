@@ -30,6 +30,12 @@ located within the shipped documentation")
       (when l
 	(plump:attribute l "href")))))
 
+(defun snarf-index-page-8 (front-page)
+  (let ((doc (plump:parse (truename front-page))))
+    (let ((i (lquery:$1 doc "img[alt=index]")))
+      (when i
+	(plump:attribute (plump:parent i) "href")))))
+
 (defun add-to-table (table subdir entry href)
   (let ((path (concatenate 'string subdir href)) l)
     (if (setq l (gethash entry table))
@@ -44,6 +50,17 @@ located within the shipped documentation")
     (when (and entry href)
       (values (plump:text entry) (plump:attribute href "href")))))
 
+;madhu 220821 801
+(defun process-plump-p-dom-8 (p)
+  "return as values KEY and HREF for a given <P>"
+  (assert (equal "P" (plump:tag-name p)))
+  (let ((entry (lquery:$1 p "a.Index-Entry-Link")))
+    (when entry
+      (let ((text (plump:text entry))
+	    (href (plump:attribute entry "href")))
+	(when (and entry href)
+	  (values text href))))))
+
 (defun add-entries (table lw-manual-location index-page)
   (let* ((subdir (directory-namestring index-page))
 	 (ret 0)
@@ -52,11 +69,17 @@ located within the shipped documentation")
     (assert (eql (elt subdir (1- (length subdir))) #\/))
     (let ((ps (lquery:$ main "p")))
       (loop for p across ps
-	    do (multiple-value-bind (entry href)
-		   (process-plump-p-dom p)
-		 (when entry
-		   (incf ret)
-		   (add-to-table table subdir entry href)))))
+	    do (or (multiple-value-bind (entry href)
+		       (process-plump-p-dom p)
+		     (when entry
+		       (incf ret)
+		       (add-to-table table subdir entry href)))
+		   (multiple-value-bind (entry href)
+		       (process-plump-p-dom-8 p)
+		     (when entry
+		       (incf ret)
+		       (add-to-table table subdir entry href)))
+		   )))
     #+:lispworks-personal-edition	;don't run out of heap
     (hcl:gc-all)
     ret))
@@ -74,7 +97,9 @@ located within the shipped documentation")
 	  count 1 into ret)))
 
 (defun extract-version (lw-manual-location)
-  (let ((p2 (search "/manual/online/" lw-manual-location)))
+  (let ((p2 (or (search  "/manual/online/" lw-manual-location)
+		;madhu 220821 - amd64-linux/lwdoc80-x86-linux.tar.gz
+		(search  "/manual/html-l/" lw-manual-location))))
     (assert p2)
     (let ((p1 (position #\/ lw-manual-location :end p2 :from-end t)))
       (assert p1)
@@ -89,17 +114,31 @@ located within the shipped documentation")
 		 (plump:attribute x "href"))
 	 li)))
 
+(defun guess-redirect (front-page lw-manual-location)
+  "If front-page ends with .htm and there is a .html file with the
+same basename, use that instead of front-page"
+  (let ((path (merge-pathnames front-page lw-manual-location)))
+    (assert (probe-file path))
+    (cond ((and (equal (pathname-type path) "htm")
+		(probe-file (make-pathname :type "html" :defaults path)))
+	   (namestring (make-pathname :type "html" :defaults front-page)))
+	  (t front-page))))
+
 (defun get-index-pages (front-pages lw-manual-location)
   (loop for front-page in front-pages
 	for path = (concatenate 'string lw-manual-location front-page)
-	for index-page = (snarf-index-page path)
+	for index-page = (or (snarf-index-page path)
+			     (snarf-index-page-8 path))
 	when index-page
 	  collect (concatenate 'string (directory-namestring front-page)
 			       index-page)))
 
 (defun build-table (lw-manual-location &optional (table (make-hash-table :test #'equal)))
   (let* ((front-pages (get-front-pages lw-manual-location))
-	 (index-pages (get-index-pages front-pages lw-manual-location)))
+	 ;;madhu 220821 - some htm pages redirect to html, fake it
+	 (front-pages-1 (mapcar (lambda (x) (guess-redirect x lw-manual-location))
+				front-pages))
+	 (index-pages (get-index-pages front-pages-1 lw-manual-location)))
     (clrhash table)
     (dolist (x index-pages)
       (add-entries table lw-manual-location x))
