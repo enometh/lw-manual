@@ -87,6 +87,27 @@ for other LispWorks versions (at least starting from 6.1)
   fixed to make it work with LispWorks and the parser may run out of
   memory on the LispWorks Personal Edition.</small>
 
+### Update [22082 lwdoc80]
+#### emacs config
+```emacs-lisp
+    (require 'lw-manual)
+    (require 'lw-manual-data-8-0-0-0)
+    (lw:set-lw-manual-symbols +lw-manual-data-8-0-0-0+)
+    nil)
+;;  (setq lw:manual-base-url "http://www.lispworks.com/documentation/lw80/")
+    (setq lw:manual-base-url "file:///opt/lw801/lib/8-0-0-0/manual/html-l/")
+```
+
+#### dump table
+```lisp
+  (require 'plump)
+  (require 'lquery)
+  (load "dump-lw-manual-data.lisp")
+  (in-package "MAKE-LW-MANUAL")
+  (setq $lw-manual-location "/opt/lw801/lib/8-0-0-0/manual/html-l/")
+  (dump-manual-data :defaults "/tmp/")
+```
+
 ### See also
 - [LispWorks](http://www.lispworks.com/documentation/index.html)
   Documention sets.
