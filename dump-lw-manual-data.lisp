@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Package: :cl-user; BASE: 10; Syntax: ANSI-Common-Lisp; -*-
 ;;;
-;;;   Time-stamp: <2020-06-23 15:17:26 IST>
+;;;   Time-stamp: <>
 ;;;   Touched: Sun Apr 05 20:20:24 2009 +0530 <enometh@meer.net>
 ;;;   Bugs-To: enometh@meer.net
 ;;;   Status: Experimental.  Do not redistribute
@@ -8,8 +8,8 @@
 ;;;
 ;;; dump-lw-manual-data.lisp see DUMP-MANUAL-DATA.
 ;;;
-;;; madhu 200622 - plump and lquery version: (require 'lquery) before
-;;; loading this file.
+;;; madhu 200622 - plump and lquery. (require 'lquery) before loading
+;;; this file.
 
 (defpackage "MAKE-LW-MANUAL"
   (:use "CL"))
@@ -146,5 +146,5 @@ located within the shipped documentation")
 (map nil (lambda (x)
 	   (add-entries *all-entries* $lw-manual-location x))
      (cdr $index-pages))
-(add-hyperspec-entries $lw-manual-location *all-entries*)
+(add-hyperspec-entries $lw-manual-location *all-entries-table*)
 ||#
