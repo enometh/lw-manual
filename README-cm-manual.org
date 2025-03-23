@@ -1,0 +1,40 @@
+#+title: M-x cm:lookup
+#+author: Madhu <enometh@net.meer>
+#+language: en
+#+PROPERTY: header-args :eval never-export
+#+PROPERTY: header-args :results replace raw drawer
+* M-x cm:lookup
+lookup documentation for "common music" symbols.  See https://github.com/ormf/cm
+** Files
+- README-cm-manual.org ::
+- cm-manual.el :: leverage lw-manual.el to provide cm:lookup to
+  lookup documentation for symbols in the common-music package.
+- cm-manual-data-2.10.el :: lookup data (symbol :: url) for common music, generated from
+https://github.com/ormf/cm/tree/doc/dict
+
+** Usage
+#+begin_src elisp :eval no
+(let ((load-path (cl-adjoin default-directory load-path)))
+  (require 'cm-manual))
+
+(setq *common-music-doc-root*
+      "file:///14/build/EXT-LISP/ormf-cm/doc/")
+
+;; (cm:lookup "*loading*")
+#+end_src
+
+** Notes
+*** [;madhu 250323]
+manual data was generated (from commit 6ee441c6) with local command
+
+#+begin_src lisp :eval no
+(cl:let ((cl:*load-pathname* #p"/14/build/EXT-LISP/ormf-cm/doc/dict/index.lisp")) (cl:load cl:*load-pathname*))
+#+end_src
+
+The html files under cm/doc/dict probably massaging, webkit doesn't
+load them because they are not valid xhtml as advertised. Change the
+
+#+begin_src shell :eval no
+sed -i -e 's|^<!DOCTYPE.*|<!DOCTYPE html>|g'
+sed -i -e 's|<html.*|<html>|g'
+#+end_src
