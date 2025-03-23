@@ -69,27 +69,32 @@ calling `lw:manual'.
    (intern-soft
     (completing-read
      "Choose lw-manual-data set: "
-     (or (map 'list 'identity
-	      (remove-if-not
-	       (lambda (x)
-		 (and (symbolp x)
-		      (string-match "^\\+lw-manual-data" (symbol-name x))))
-	       obarray))
+     (or (let ((ret nil))
+	   (mapatoms (lambda (x)
+		       (when (and (symbolp x) (string-match "^\\+lw-manual-data" (symbol-name x)))
+			 (push x ret)))
+		     obarray)
+	   ret)
 	 (error "No lw-manual-data set loaded"))
      nil t nil nil nil))))
 
-(defun lw:set-lw-manual-symbols (table)
+(defun lw:make-symbol-table (table-data)
+  (let ((table (obarray-make (length table-data))))
+    ;; madhu 250321 - emacs 30 introduced the opaque obarray type so
+    ;; sequence functions don't work on `obarray' anymore
+    (mapc (lambda (entry)
+	    (let ((symbol (intern (car entry) table)))
+	      (cond
+	       ((boundp symbol)
+		(push (cadr entry) (symbol-value symbol)))
+	       (t (set symbol (cdr entry))))))
+	  table-data)
+    table))
+
+(defun lw:set-lw-manual-symbols (table-data)
   "Initialize lw:manual-symbols from TABLE."
   (interactive (list (lw:choose-lw-manual-data-set)))
-  (setq lw::manual-symbols (make-vector (length table) 0))
-  (mapc  (lambda (entry)
-	   (let ((symbol (intern (car entry) lw::manual-symbols)))
-	     (cond
-	      ((boundp symbol)
-	       (push (cadr entry) (symbol-value symbol)))
-	      (t (set symbol (cdr entry))))))
-	 table)
-  lw::manual-symbols)
+  (setq lw::manual-symbols (lw:make-symbol-table table-data)))
 
 (defun lw::symbol-sans-package (symbol-name)
   "Remove the package prefix from SYMBOL-NAME, if present."
@@ -98,7 +103,7 @@ calling `lw:manual'.
     (substring symbol-name (match-end 0)))
    (t symbol-name)))
 
-(defun lw:read-symbol (&optional prompt)
+(defun lw:read-symbol-internal (prompt symbol-table history-var)
   "Return the symbol at point as a string with PROMPT.
 
 If `current-prefix-arg' is not nil, the user is prompted for the symbol."
@@ -109,34 +114,47 @@ If `current-prefix-arg' is not nil, the user is prompted for the symbol."
 	     (lw::symbol-sans-package symbol-at-point))))
     (if (and symbol-at-point
 	     (not current-prefix-arg)
-	     (intern-soft symbol-at-point
-			  lw::manual-symbols))
+	     (intern-soft symbol-at-point symbol-table))
 	symbol-at-point
-      (completing-read (or prompt "LW documentation lookup: ")
-		       lw::manual-symbols
+      (completing-read prompt
+		       symbol-table
 		       #'boundp
 		       t
 		       symbol-at-point
-		       'lw:manual-history
+		       history-var
 		       symbol-at-point))))
 
+(defun lw:lookup-internal (symbol-name symbol-table base-url error-template)
+  (cl-maplist (lambda (entry)
+		(browse-url (concat base-url (car entry)))
+		(when (cdr entry)
+		  (sleep-for 0.2)))
+	      (let ((symbol (intern-soft (downcase symbol-name)
+					 symbol-table)))
+		(if (and symbol (boundp symbol))
+		    (symbol-value symbol)
+		  (error (or error-template)
+			 "The symbol `%s' is not documented in the LW manual set"
+			 symbol-name)))))
+
 (defun lw:manual (symbol-name)
-  "View the documentation on SYMBOL-NAME from the Lisp Works manual.
+  "View the documentation for SYMBOL-NAME.
+
+SYMBOL-NAME defaults to the symbol at point. If `current-prefix-arg'
+is not nil, the user is prompted for the symbol.
+
 If SYMBOL-NAME has more than one definition, all of them are displayed with
 your favorite browser in sequence.  The browser should have a \"back\"
 function to view the separate definitions, or it may be that the pages
 open in different tabs."
-  (interactive (list (lw:read-symbol)))
-  (maplist (lambda (entry)
-	     (browse-url (concat lw:manual-base-url (car entry)))
-	     (when (cdr entry)
-	       (sleep-for 0.2)))
-	   (let ((symbol (intern-soft (downcase symbol-name)
-				      lw::manual-symbols)))
-	     (if (and symbol (boundp symbol))
-		 (symbol-value symbol)
-	       (error "The symbol `%s' is not documented in the LW manual set"
-		      symbol-name)))))
+  (interactive (list
+		(lw:read-symbol-internal "LW documentation lookup: "
+					 lw::manual-symbols
+					 'lw:manual-history)))
+  (lw:lookup-internal symbol-name
+		      lw::manual-symbols
+		       lw:manual-base-url
+		      "The symbol `%s' is not documented in the LW manual set"))
 
 ;;(let ((load-path (cons (file-name-directory load-file-name) load-path)))
 ;;  (require 'lw-manual-data-7-1-0-0))
